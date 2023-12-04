@@ -21,7 +21,7 @@ With [recent changes](https://github.com/Uniswap/v4-core/pull/404) to v4, Hooks 
         * the inbound token is added to the hook's reserves
     2. an *equivalent* number of outbound tokens is sent from the hook to the PoolManager
         * the outbound token is removed from the hook's reserves
-        * this creates a credit, that the swap router can claim and send to the swapper
+        * this creates a credit -- the swap router claims it and sends it to the swapper
 
 ---
 
