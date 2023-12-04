@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 // TODO: update to v4-periphery/BaseHook.sol when its compatible
 import {BaseHook} from "./forks/BaseHook.sol";
 
-import {console2} from "forge-std/console2.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
 import {Lockers} from "@uniswap/v4-core/contracts/libraries/Lockers.sol";
@@ -30,7 +29,7 @@ contract Counter is BaseHook {
             afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
-            noOp: true, // no-op PoolManager.swap (v3 concentrated liquidity) in favor of constant sum curve
+            noOp: true, // no-op PoolManager.swap in favor of constant sum curve
             accessLock: true
         });
     }
@@ -44,7 +43,7 @@ contract Counter is BaseHook {
         uint256 tokenAmount =
             params.amountSpecified < 0 ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
-        // Swap currency0 for currency1
+        // 0 -> 1
         if (params.zeroForOne) {
             // take currency0 from the PoolManager, forcing the router to pay debt with user's currency0
             poolManager.take(key.currency0, address(this), tokenAmount);
@@ -53,7 +52,7 @@ contract Counter is BaseHook {
             key.currency1.transfer(address(poolManager), tokenAmount);
             poolManager.settle(key.currency1);
         }
-        // Swap currency1 for currency0
+        // 1 -> 0
         else {
             // take currency1 from the PoolManager, forcing the router to pay debt with user's currency1
             poolManager.take(key.currency1, address(this), tokenAmount);
@@ -63,7 +62,7 @@ contract Counter is BaseHook {
             poolManager.settle(key.currency0);
         }
 
-        // NoOp the PoolManager.swap call
+        // prevent normal v4 swap logic from executing
         return Hooks.NO_OP_SELECTOR;
     }
 
