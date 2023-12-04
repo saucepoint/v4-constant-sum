@@ -13,17 +13,6 @@ import {BalanceDelta} from "@uniswap/v4-core/contracts/types/BalanceDelta.sol";
 contract Counter is BaseHook {
     using PoolIdLibrary for PoolKey;
 
-    // NOTE: ---------------------------------------------------------
-    // state variables should typically be unique to a pool
-    // a single hook contract should be able to service multiple pools
-    // ---------------------------------------------------------------
-
-    mapping(PoolId => uint256 count) public beforeSwapCount;
-    mapping(PoolId => uint256 count) public afterSwapCount;
-
-    mapping(PoolId => uint256 count) public beforeModifyPositionCount;
-    mapping(PoolId => uint256 count) public afterModifyPositionCount;
-
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -31,13 +20,13 @@ contract Counter is BaseHook {
             beforeInitialize: false,
             afterInitialize: false,
             beforeModifyPosition: true,
-            afterModifyPosition: true,
+            afterModifyPosition: false,
             beforeSwap: true,
-            afterSwap: true,
+            afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
-            noOp: false,
-            accessLock: false
+            noOp: true,
+            accessLock: true
         });
     }
 
@@ -50,37 +39,17 @@ contract Counter is BaseHook {
         override
         returns (bytes4)
     {
-        beforeSwapCount[key.toId()]++;
-        return BaseHook.beforeSwap.selector;
+        
+        return Hooks.NO_OP_SELECTOR;
     }
 
-    function afterSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
-        external
-        override
-        returns (bytes4)
-    {
-        afterSwapCount[key.toId()]++;
-        return BaseHook.afterSwap.selector;
-    }
-
+    /// @notice No liquidity will be managed by v4 PoolManager
     function beforeModifyPosition(
         address,
         PoolKey calldata key,
         IPoolManager.ModifyPositionParams calldata,
         bytes calldata
     ) external override returns (bytes4) {
-        beforeModifyPositionCount[key.toId()]++;
-        return BaseHook.beforeModifyPosition.selector;
-    }
-
-    function afterModifyPosition(
-        address,
-        PoolKey calldata key,
-        IPoolManager.ModifyPositionParams calldata,
-        BalanceDelta,
-        bytes calldata
-    ) external override returns (bytes4) {
-        afterModifyPositionCount[key.toId()]++;
-        return BaseHook.afterModifyPosition.selector;
+        revert("No v4 Liquidity allowed");
     }
 }
