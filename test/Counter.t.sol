@@ -135,4 +135,11 @@ contract CounterTest is HookTest {
         // received token0
         assertEq(token0After - token0Before, uint256(-amount));
     }
+
+    function test_no_v4_liquidity() public {
+        vm.expectRevert("No v4 Liquidity allowed");
+        modifyPositionRouter.modifyPosition(
+            poolKey, IPoolManager.ModifyPositionParams(-60, 60, 10000 ether), ZERO_BYTES
+        );
+    }
 }

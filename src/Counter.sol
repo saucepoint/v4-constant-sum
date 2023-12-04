@@ -24,21 +24,18 @@ contract Counter is BaseHook {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,
-            beforeModifyPosition: true,
+            beforeModifyPosition: true, // prevent v4 liquidity from being added
             afterModifyPosition: false,
             beforeSwap: true,
             afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
-            noOp: true,
+            noOp: true, // no-op PoolManager.swap (v3 concentrated liquidity) in favor of constant sum curve
             accessLock: true
         });
     }
 
-    // -----------------------------------------------
-    // NOTE: see IHooks.sol for function documentation
-    // -----------------------------------------------
-
+    /// @notice Constant sum swap via custom accounting, tokens are exchanged 1:1
     function beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         external
         override
@@ -77,13 +74,15 @@ contract Counter is BaseHook {
         IPoolManager.ModifyPositionParams calldata,
         bytes calldata
     ) external override returns (bytes4) {
-        // revert("No v4 Liquidity allowed");
-        return BaseHook.beforeModifyPosition.selector;
+        revert("No v4 Liquidity allowed");
     }
 
     // -----------------------------------------------
     // Liquidity Functions, not production ready
     // -----------------------------------------------
+    /// @notice Add liquidity 1:1 for the constant sum curve
+    /// @param key PoolKey of the pool to add liquidity to
+    /// @param liquiditySum The sum of the liquidity to add (token0 + token1)
     function addLiquidity(PoolKey calldata key, uint256 liquiditySum) external {
         require(liquiditySum % 2 == 0, "liquiditySum must be even");
         uint256 tokenAmounts = liquiditySum / 2;
