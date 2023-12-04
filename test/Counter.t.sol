@@ -59,6 +59,7 @@ contract CounterTest is HookTest {
     function test_zeroForOne_positive() public {
         uint256 token0Before = token0.balanceOf(address(this));
         uint256 token1Before = token1.balanceOf(address(this));
+        uint256 reserves0Before = token0.balanceOf(address(hook));
 
         // Perform a test swap //
         int256 amount = 10e18;
@@ -68,9 +69,11 @@ contract CounterTest is HookTest {
 
         uint256 token0After = token0.balanceOf(address(this));
         uint256 token1After = token1.balanceOf(address(this));
+        uint256 reserves0After = token0.balanceOf(address(hook));
 
         // paid token0
         assertEq(token0Before - token0After, uint256(amount));
+        assertEq(reserves0After - reserves0Before, uint256(amount));
 
         // received token1
         assertEq(token1After - token1Before, uint256(amount));
@@ -79,6 +82,7 @@ contract CounterTest is HookTest {
     function test_zeroForOne_negative() public {
         uint256 token0Before = token0.balanceOf(address(this));
         uint256 token1Before = token1.balanceOf(address(this));
+        uint256 reserves0Before = token0.balanceOf(address(hook));
 
         // Perform a test swap: want 10 token1 //
         int256 amount = -10e18;
@@ -88,9 +92,11 @@ contract CounterTest is HookTest {
 
         uint256 token0After = token0.balanceOf(address(this));
         uint256 token1After = token1.balanceOf(address(this));
+        uint256 reserves0After = token0.balanceOf(address(hook));
 
         // paid token0
         assertEq(token0Before - token0After, uint256(-amount));
+        assertEq(reserves0After - reserves0Before, uint256(-amount));
 
         // received token1
         assertEq(token1After - token1Before, uint256(-amount));
@@ -99,6 +105,7 @@ contract CounterTest is HookTest {
     function test_oneForZero_positive() public {
         uint256 token0Before = token0.balanceOf(address(this));
         uint256 token1Before = token1.balanceOf(address(this));
+        uint256 reserves1Before = token1.balanceOf(address(hook));
 
         // Perform a test swap //
         int256 amount = 10e18;
@@ -108,9 +115,11 @@ contract CounterTest is HookTest {
 
         uint256 token0After = token0.balanceOf(address(this));
         uint256 token1After = token1.balanceOf(address(this));
+        uint256 reserves1After = token1.balanceOf(address(hook));
 
         // paid token1
         assertEq(token1Before - token1After, uint256(amount));
+        assertEq(reserves1After - reserves1Before, uint256(amount));
 
         // received token0
         assertEq(token0After - token0Before, uint256(amount));
@@ -119,6 +128,7 @@ contract CounterTest is HookTest {
     function test_oneForZero_negative() public {
         uint256 token0Before = token0.balanceOf(address(this));
         uint256 token1Before = token1.balanceOf(address(this));
+        uint256 reserves1Before = token1.balanceOf(address(hook));
 
         // Perform a test swap: want 10 token0 //
         int256 amount = -10e18;
@@ -128,9 +138,11 @@ contract CounterTest is HookTest {
 
         uint256 token0After = token0.balanceOf(address(this));
         uint256 token1After = token1.balanceOf(address(this));
+        uint256 reserves1After = token1.balanceOf(address(hook));
 
         // paid token1
         assertEq(token1Before - token1After, uint256(-amount));
+        assertEq(reserves1After - reserves1Before, uint256(-amount));
 
         // received token0
         assertEq(token0After - token0Before, uint256(-amount));
