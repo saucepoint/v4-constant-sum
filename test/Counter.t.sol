@@ -22,6 +22,7 @@ contract CounterTest is HookTest {
     Counter hook;
     PoolKey poolKey;
     PoolId poolId;
+    PoolKey hooklessKey;
 
     function setUp() public {
         // creates the pool manager, test tokens, and other utility routers
@@ -41,13 +42,13 @@ contract CounterTest is HookTest {
         poolId = poolKey.toId();
         initializeRouter.initialize(poolKey, Constants.SQRT_RATIO_1_1, ZERO_BYTES);
 
-        PoolKey memory hooklessKey =
+        hooklessKey =
             PoolKey(Currency.wrap(address(token0)), Currency.wrap(address(token1)), 3000, 60, IHooks(address(0x0)));
         initializeRouter.initialize(hooklessKey, Constants.SQRT_RATIO_1_1, ZERO_BYTES);
 
         // Provide liquidity to the pair, so there are tokens that we can take
         modifyPositionRouter.modifyPosition(
-            hooklessKey, IPoolManager.ModifyPositionParams(-60, 60, 10000 ether), ZERO_BYTES
+            hooklessKey, IPoolManager.ModifyPositionParams(-60, 60, 100000 ether), ZERO_BYTES
         );
 
         // Provide liquidity to the hook, so there are tokens on the constant sum curve
@@ -153,5 +154,25 @@ contract CounterTest is HookTest {
         modifyPositionRouter.modifyPosition(
             poolKey, IPoolManager.ModifyPositionParams(-60, 60, 10000 ether), ZERO_BYTES
         );
+    }
+
+    function test_hookless_gas() public {
+        int256 amount = 1e18;
+        bool zeroForOne = true;
+        uint256 gasBefore = gasleft();
+        swap(hooklessKey, amount, zeroForOne, ZERO_BYTES);
+        uint256 gasAfter = gasleft();
+        uint256 gasUsed = gasBefore - gasAfter;
+        console2.log("hookless gas used: ", gasUsed);
+    }
+
+    function test_csmm_gas() public {
+        int256 amount = 1e18;
+        bool zeroForOne = true;
+        uint256 gasBefore = gasleft();
+        swap(poolKey, amount, zeroForOne, ZERO_BYTES);
+        uint256 gasAfter = gasleft();
+        uint256 gasUsed = gasBefore - gasAfter;
+        console2.log("csmm gas used: ", gasUsed);
     }
 }
