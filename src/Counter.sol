@@ -40,27 +40,22 @@ contract Counter is BaseHook {
         override
         returns (bytes4)
     {
+        // tokens are always swapped 1:1, so inbound/outbound amounts are the same even if the user uses exact-output-swap
         uint256 tokenAmount =
             params.amountSpecified < 0 ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
-        // 0 -> 1
-        if (params.zeroForOne) {
-            // take currency0 from the PoolManager, forcing the router to pay debt with user's currency0
-            poolManager.take(key.currency0, address(this), tokenAmount);
+        // determine inbound/outbound token based on 0->1 or 1->0 swap
+        (Currency inbound, Currency outbound) =
+            params.zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-            // provide currency1 to the PoolManager, forcing the router to forward currency1 to the user
-            key.currency1.transfer(address(poolManager), tokenAmount);
-            poolManager.settle(key.currency1);
-        }
-        // 1 -> 0
-        else {
-            // take currency1 from the PoolManager, forcing the router to pay debt with user's currency1
-            poolManager.take(key.currency1, address(this), tokenAmount);
+        // take the inbound token from the PoolManager, debt is paid by the swapper via the swap router
+        // (inbound token is added to hook's reserves)
+        poolManager.take(inbound, address(this), tokenAmount);
 
-            // provide currency0 to the PoolManager, forcing the router to forward currency0 to the user
-            key.currency0.transfer(address(poolManager), tokenAmount);
-            poolManager.settle(key.currency0);
-        }
+        // provide outbound token to the PoolManager, credit is claimed by the swap router who forwards it to the swapper
+        // (outbound token is removed from hook's reserves)
+        outbound.transfer(address(poolManager), tokenAmount);
+        poolManager.settle(outbound);
 
         // prevent normal v4 swap logic from executing
         return Hooks.NO_OP_SELECTOR;
