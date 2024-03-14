@@ -5,13 +5,12 @@ pragma solidity ^0.8.19;
 import {BaseHook} from "./forks/BaseHook.sol";
 
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
-import {Lockers} from "@uniswap/v4-core/contracts/libraries/Lockers.sol";
-import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
-import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/contracts/types/PoolId.sol";
-import {BalanceDelta} from "@uniswap/v4-core/contracts/types/BalanceDelta.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/contracts/types/Currency.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 
 contract Counter is BaseHook {
     using CurrencyLibrary for Currency;
@@ -23,14 +22,18 @@ contract Counter is BaseHook {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,
-            beforeModifyPosition: true, // prevent v4 liquidity from being added
-            afterModifyPosition: false,
+            beforeAddLiquidity: true,
+            afterAddLiquidity: false,
+            beforeRemoveLiquidity: false,
+            afterRemoveLiquidity: false,
             beforeSwap: true,
             afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
-            noOp: true, // no-op PoolManager.swap in favor of constant sum curve
-            accessLock: true
+            beforeSwapReturnDelta: true,
+            afterSwapReturnDelta: false,
+            afterAddLiqReturnDelta: false,
+            afterRemoveLiqReturnDelta: false
         });
     }
 
@@ -38,7 +41,7 @@ contract Counter is BaseHook {
     function beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata params, bytes calldata)
         external
         override
-        returns (bytes4)
+        returns (bytes4, int128)
     {
         // tokens are always swapped 1:1, so inbound/outbound amounts are the same even if the user uses exact-output-swap
         uint256 tokenAmount =
@@ -58,14 +61,14 @@ contract Counter is BaseHook {
         poolManager.settle(outbound);
 
         // prevent normal v4 swap logic from executing
-        return Hooks.NO_OP_SELECTOR;
+        return (BaseHook.beforeSwap.selector, 0);
     }
 
     /// @notice No liquidity will be managed by v4 PoolManager
-    function beforeModifyPosition(
+    function beforeAddLiquidity(
         address,
-        PoolKey calldata key,
-        IPoolManager.ModifyPositionParams calldata,
+        PoolKey calldata,
+        IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata
     ) external override returns (bytes4) {
         revert("No v4 Liquidity allowed");
@@ -77,7 +80,7 @@ contract Counter is BaseHook {
     /// @notice Add liquidity 1:1 for the constant sum curve
     /// @param key PoolKey of the pool to add liquidity to
     /// @param liquiditySum The sum of the liquidity to add (token0 + token1)
-    function addLiquidity(PoolKey calldata key, uint256 liquiditySum) external {
+    function addLiquidity(PoolKey memory key, uint256 liquiditySum) external {
         require(liquiditySum % 2 == 0, "liquiditySum must be even");
         uint256 tokenAmounts = liquiditySum / 2;
 
