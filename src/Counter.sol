@@ -27,11 +27,11 @@ contract Counter is BaseHook {
             beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
             beforeSwap: true,
-            afterSwap: false,
+            afterSwap: true,
             beforeDonate: false,
             afterDonate: false,
             beforeSwapReturnDelta: true,
-            afterSwapReturnDelta: false,
+            afterSwapReturnDelta: true,
             afterAddLiqReturnDelta: false,
             afterRemoveLiqReturnDelta: false
         });
@@ -43,34 +43,46 @@ contract Counter is BaseHook {
         override
         returns (bytes4, int128)
     {
-        // tokens are always swapped 1:1, so inbound/outbound amounts are the same even if the user uses exact-output-swap
+        // tokens are always swapped 1:1, so inputToken/outputToken amounts are the same even if the user uses exact-output-swap
         uint256 tokenAmount =
             params.amountSpecified < 0 ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
-        // determine inbound/outbound token based on 0->1 or 1->0 swap
-        (Currency inbound, Currency outbound) =
+        // determine inputToken/outputToken token based on 0->1 or 1->0 swap
+        (Currency inputToken, Currency outputToken) =
             params.zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-        // take the inbound token from the PoolManager, debt is paid by the swapper via the swap router
-        // (inbound token is added to hook's reserves)
-        poolManager.take(inbound, address(this), tokenAmount);
+        // take the inputToken token from the PoolManager, debt is paid by the swapper via the swap router
+        // (inputToken token is added to hook's reserves)
+        poolManager.take(inputToken, address(this), tokenAmount);
 
-        // provide outbound token to the PoolManager, credit is claimed by the swap router who forwards it to the swapper
-        // (outbound token is removed from hook's reserves)
-        outbound.transfer(address(poolManager), tokenAmount);
-        poolManager.settle(outbound);
+        // provide outputToken token to the PoolManager, credit is claimed by the swap router who forwards it to the swapper
+        // (outputToken token is removed from hook's reserves)
+        // outputToken.transfer(address(poolManager), tokenAmount);
+        // poolManager.settle(outputToken);
 
         // prevent normal v4 swap logic from executing
-        return (BaseHook.beforeSwap.selector, 0);
+        // TODO: safe casting
+        return (BaseHook.beforeSwap.selector, int128(uint128(tokenAmount)));
+    }
+
+    function afterSwap(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        BalanceDelta,
+        bytes calldata
+    ) external override returns (bytes4, int128) {
+        // poolManager.take(key.currency1, sender, uint256(-params.amountSpecified));
+        // return (BaseHook.afterSwap.selector, int128(params.amountSpecified));
+        return (BaseHook.afterSwap.selector, int128(params.amountSpecified));
     }
 
     /// @notice No liquidity will be managed by v4 PoolManager
-    function beforeAddLiquidity(
-        address,
-        PoolKey calldata,
-        IPoolManager.ModifyLiquidityParams calldata,
-        bytes calldata
-    ) external override returns (bytes4) {
+    function beforeAddLiquidity(address, PoolKey calldata, IPoolManager.ModifyLiquidityParams calldata, bytes calldata)
+        external
+        override
+        returns (bytes4)
+    {
         revert("No v4 Liquidity allowed");
     }
 
@@ -81,6 +93,9 @@ contract Counter is BaseHook {
     /// @param key PoolKey of the pool to add liquidity to
     /// @param liquiditySum The sum of the liquidity to add (token0 + token1)
     function addLiquidity(PoolKey memory key, uint256 liquiditySum) external {
+        // theoretically in CSMM, the liquidity ratio should attempt to move the reserves to 50/50
+        // for demo purposes, we'll just require liquidity to be 50/50 ratio
+
         require(liquiditySum % 2 == 0, "liquiditySum must be even");
         uint256 tokenAmounts = liquiditySum / 2;
 

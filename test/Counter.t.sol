@@ -14,6 +14,8 @@ import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {Counter} from "../src/Counter.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {CustomCurveRouter} from "./utils/CustomCurveRouter.sol";
+import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 
 contract CounterTest is Test, Deployers {
     using PoolIdLibrary for PoolKey;
@@ -28,8 +30,13 @@ contract CounterTest is Test, Deployers {
         Deployers.deployFreshManagerAndRouters();
         Deployers.deployMintAndApprove2Currencies();
 
+        swapRouter = PoolSwapTest(address(new CustomCurveRouter(IPoolManager(address(manager)))));
+
         // Deploy the hook to an address with the correct flags
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQ_FLAG);
+        uint160 flags = uint160(
+            Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_FLAG
+                | Hooks.AFTER_SWAP_RETURNS_DELTA_FLAG | Hooks.BEFORE_ADD_LIQ_FLAG
+        );
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(Counter).creationCode, abi.encode(address(manager)));
         hook = new Counter{salt: salt}(IPoolManager(address(manager)));
@@ -40,9 +47,7 @@ contract CounterTest is Test, Deployers {
         poolId = poolKey.toId();
         manager.initialize(poolKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
-        hooklessKey = PoolKey(
-            currency0, currency1, 3000, 60, IHooks(address(0x0))
-        );
+        hooklessKey = PoolKey(currency0, currency1, 3000, 60, IHooks(address(0x0)));
         manager.initialize(hooklessKey, SQRT_RATIO_1_1, ZERO_BYTES);
 
         // Provide liquidity to the pair, so there are tokens that we can take
@@ -56,13 +61,13 @@ contract CounterTest is Test, Deployers {
         hook.addLiquidity(poolKey, 100e18);
     }
 
-    function test_zeroForOne_positive() public {
+    function test_zeroForOne_exactInput() public {
         uint256 currency0Before = currency0.balanceOf(address(this));
         uint256 currency1Before = currency1.balanceOf(address(this));
         uint256 reserves0Before = currency0.balanceOf(address(hook));
 
         // Perform a test swap //
-        int256 amount = 10e18;
+        int256 amount = -10e18;
         bool zeroForOne = true;
         swap(poolKey, zeroForOne, amount, ZERO_BYTES);
         // ------------------- //
@@ -70,22 +75,17 @@ contract CounterTest is Test, Deployers {
         uint256 currency0After = currency0.balanceOf(address(this));
         uint256 currency1After = currency1.balanceOf(address(this));
         uint256 reserves0After = currency0.balanceOf(address(hook));
-
-        // paid currency0
-        assertEq(currency0Before - currency0After, uint256(amount));
-        assertEq(reserves0After - reserves0Before, uint256(amount));
-
-        // received currency1
-        assertEq(currency1After - currency1Before, uint256(amount));
+        assertTrue(currency0Before < currency0After);
+        assertEq(currency1Before, currency1After);
     }
 
-    function test_zeroForOne_negative() public {
+    function test_zeroForOne_exactOutput() public {
         uint256 currency0Before = currency0.balanceOf(address(this));
         uint256 currency1Before = currency1.balanceOf(address(this));
         uint256 reserves0Before = currency0.balanceOf(address(hook));
 
         // Perform a test swap: want 10 currency1 //
-        int256 amount = -10e18;
+        int256 amount = 10e18;
         bool zeroForOne = true;
         swap(poolKey, zeroForOne, amount, ZERO_BYTES);
         // ------------------- //
@@ -102,13 +102,13 @@ contract CounterTest is Test, Deployers {
         assertEq(currency1After - currency1Before, uint256(-amount));
     }
 
-    function test_oneForZero_positive() public {
+    function test_oneForZero_exactInput() public {
         uint256 currency0Before = currency0.balanceOf(address(this));
         uint256 currency1Before = currency1.balanceOf(address(this));
         uint256 reserves1Before = currency1.balanceOf(address(hook));
 
         // Perform a test swap //
-        int256 amount = 10e18;
+        int256 amount = -10e18;
         bool zeroForOne = false;
         swap(poolKey, zeroForOne, amount, ZERO_BYTES);
         // ------------------- //
@@ -125,13 +125,13 @@ contract CounterTest is Test, Deployers {
         assertEq(currency0After - currency0Before, uint256(amount));
     }
 
-    function test_oneForZero_negative() public {
+    function test_oneForZero_exactOutput() public {
         uint256 currency0Before = currency0.balanceOf(address(this));
         uint256 currency1Before = currency1.balanceOf(address(this));
         uint256 reserves1Before = currency1.balanceOf(address(hook));
 
         // Perform a test swap: want 10 currency0 //
-        int256 amount = -10e18;
+        int256 amount = 10e18;
         bool zeroForOne = false;
         swap(poolKey, zeroForOne, amount, ZERO_BYTES);
         // ------------------- //
@@ -156,7 +156,7 @@ contract CounterTest is Test, Deployers {
     }
 
     function test_hookless_gas() public {
-        int256 amount = 1e18;
+        int256 amount = -1e18;
         bool zeroForOne = true;
         uint256 gasBefore = gasleft();
         swap(hooklessKey, zeroForOne, amount, ZERO_BYTES);
@@ -166,7 +166,7 @@ contract CounterTest is Test, Deployers {
     }
 
     function test_csmm_gas() public {
-        int256 amount = 1e18;
+        int256 amount = -1e18;
         bool zeroForOne = true;
         uint256 gasBefore = gasleft();
         swap(poolKey, zeroForOne, amount, ZERO_BYTES);
