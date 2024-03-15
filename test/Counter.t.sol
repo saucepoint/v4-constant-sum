@@ -65,6 +65,7 @@ contract CounterTest is Test, Deployers {
         uint256 currency0Before = currency0.balanceOf(address(this));
         uint256 currency1Before = currency1.balanceOf(address(this));
         uint256 reserves0Before = currency0.balanceOf(address(hook));
+        uint256 currency0BeforePM = currency0.balanceOf(address(manager));
 
         // Perform a test swap //
         int256 amount = -10e18;
@@ -75,7 +76,9 @@ contract CounterTest is Test, Deployers {
         uint256 currency0After = currency0.balanceOf(address(this));
         uint256 currency1After = currency1.balanceOf(address(this));
         uint256 reserves0After = currency0.balanceOf(address(hook));
+        uint256 currency0AfterPM = currency0.balanceOf(address(manager));
         assertTrue(currency0Before < currency0After);
+        assertTrue(currency0BeforePM > currency0AfterPM);
         assertEq(currency1Before, currency1After);
     }
 
