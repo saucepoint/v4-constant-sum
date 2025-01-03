@@ -33,7 +33,11 @@ Additional resources:
 
 [v4-template](https://github.com/uniswapfoundation/v4-template) provides a minimal template and environment for developing v4 hooks
 
+[Uniswap v4 docs](https://docs.uniswap.org/contracts/v4/overview)
+
 [v4-periphery](https://github.com/uniswap/v4-periphery) contains advanced hook implementations that serve as a great reference
 
 [v4-core](https://github.com/uniswap/v4-core)
+
+[v4-by-example](https://v4-by-example.org)
 

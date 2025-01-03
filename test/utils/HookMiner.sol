@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.21;
 
 /// @title HookMiner - a library for mining hook addresses
 /// @dev This library is intended for `forge test` environments. There may be gotchas when using salts in `forge script` or `forge create`
 library HookMiner {
-    // mask to slice out the top 12 bit of the address
-    uint160 constant FLAG_MASK = 0xFFF << 148;
+    // mask to slice out the bottom 14 bit of the address
+    uint160 constant FLAG_MASK = 0x3FFF;
 
     // Maximum number of iterations to find a salt, avoid infinite loops
-    uint256 constant MAX_LOOP = 20_000;
+    uint256 constant MAX_LOOP = 100_000;
 
     /// @notice Find a salt that produces a hook address with the desired `flags`
     /// @param deployer The address that will deploy the hook. In `forge test`, this will be the test contract `address(this)` or the pranking address
@@ -18,7 +18,7 @@ library HookMiner {
     /// @param constructorArgs The encoded constructor arguments of a hook contract. Example: `abi.encode(address(manager))`
     /// @return hookAddress salt and corresponding address that was found. The salt can be used in `new Hook{salt: salt}(<constructor arguments>)`
     function find(address deployer, uint160 flags, bytes memory creationCode, bytes memory constructorArgs)
-        external
+        internal
         view
         returns (address, bytes32)
     {
@@ -41,7 +41,7 @@ library HookMiner {
     /// @param salt The salt used to deploy the hook
     /// @param creationCode The creation code of a hook contract
     function computeAddress(address deployer, uint256 salt, bytes memory creationCode)
-        public
+        internal
         pure
         returns (address hookAddress)
     {

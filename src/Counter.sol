@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
-// TODO: update to v4-periphery/BaseHook.sol when its compatible
-import {BaseHook} from "./forks/BaseHook.sol";
+import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
-import {Lockers} from "@uniswap/v4-core/contracts/libraries/Lockers.sol";
-import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
-import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/contracts/types/PoolId.sol";
-import {BalanceDelta} from "@uniswap/v4-core/contracts/types/BalanceDelta.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/contracts/types/Currency.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 
 contract Counter is BaseHook {
-    using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
 
     constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
