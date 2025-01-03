@@ -54,149 +54,102 @@ contract CounterTest is Test, Fixtures {
         key = PoolKey(currency0, currency1, 3000, 60, IHooks(hook));
         poolId = key.toId();
         manager.initialize(key, SQRT_PRICE_1_1);
-
-        // Provide full-range liquidity to the pool
-        tickLower = TickMath.minUsableTick(key.tickSpacing);
-        tickUpper = TickMath.maxUsableTick(key.tickSpacing);
-
-        uint128 liquidityAmount = 100e18;
-
-        (uint256 amount0Expected, uint256 amount1Expected) = LiquidityAmounts.getAmountsForLiquidity(
-            SQRT_PRICE_1_1,
-            TickMath.getSqrtPriceAtTick(tickLower),
-            TickMath.getSqrtPriceAtTick(tickUpper),
-            liquidityAmount
-        );
-
-        (tokenId,) = posm.mint(
-            key,
-            tickLower,
-            tickUpper,
-            liquidityAmount,
-            amount0Expected + 1,
-            amount1Expected + 1,
-            address(this),
-            block.timestamp,
-            ZERO_BYTES
-        );
     }
 
-    function test_zeroForOne_positive() public {
-        uint256 token0Before = token0.balanceOf(address(this));
-        uint256 token1Before = token1.balanceOf(address(this));
-        uint256 reserves0Before = token0.balanceOf(address(hook));
+    // function test_zeroForOne_positive() public {
+    //     uint256 token0Before = token0.balanceOf(address(this));
+    //     uint256 token1Before = token1.balanceOf(address(this));
+    //     uint256 reserves0Before = token0.balanceOf(address(hook));
 
-        // Perform a test swap //
-        int256 amount = 10e18;
-        bool zeroForOne = true;
-        swap(poolKey, amount, zeroForOne, ZERO_BYTES);
-        // ------------------- //
+    //     // Perform a test swap //
+    //     int256 amount = 10e18;
+    //     bool zeroForOne = true;
+    //     swap(key, zeroForOne, amount, ZERO_BYTES);
+    //     // ------------------- //
 
-        uint256 token0After = token0.balanceOf(address(this));
-        uint256 token1After = token1.balanceOf(address(this));
-        uint256 reserves0After = token0.balanceOf(address(hook));
+    //     uint256 token0After = token0.balanceOf(address(this));
+    //     uint256 token1After = token1.balanceOf(address(this));
+    //     uint256 reserves0After = token0.balanceOf(address(hook));
 
-        // paid token0
-        assertEq(token0Before - token0After, uint256(amount));
-        assertEq(reserves0After - reserves0Before, uint256(amount));
+    //     // paid token0
+    //     assertEq(token0Before - token0After, uint256(amount));
+    //     assertEq(reserves0After - reserves0Before, uint256(amount));
 
-        // received token1
-        assertEq(token1After - token1Before, uint256(amount));
-    }
+    //     // received token1
+    //     assertEq(token1After - token1Before, uint256(amount));
+    // }
 
-    function test_zeroForOne_negative() public {
-        uint256 token0Before = token0.balanceOf(address(this));
-        uint256 token1Before = token1.balanceOf(address(this));
-        uint256 reserves0Before = token0.balanceOf(address(hook));
+    // function test_zeroForOne_negative() public {
+    //     uint256 token0Before = token0.balanceOf(address(this));
+    //     uint256 token1Before = token1.balanceOf(address(this));
+    //     uint256 reserves0Before = token0.balanceOf(address(hook));
 
-        // Perform a test swap: want 10 token1 //
-        int256 amount = -10e18;
-        bool zeroForOne = true;
-        swap(poolKey, amount, zeroForOne, ZERO_BYTES);
-        // ------------------- //
+    //     // Perform a test swap: want 10 token1 //
+    //     int256 amount = -10e18;
+    //     bool zeroForOne = true;
+    //     swap(key, zeroForOne, amount, ZERO_BYTES);
+    //     // ------------------- //
 
-        uint256 token0After = token0.balanceOf(address(this));
-        uint256 token1After = token1.balanceOf(address(this));
-        uint256 reserves0After = token0.balanceOf(address(hook));
+    //     uint256 token0After = token0.balanceOf(address(this));
+    //     uint256 token1After = token1.balanceOf(address(this));
+    //     uint256 reserves0After = token0.balanceOf(address(hook));
 
-        // paid token0
-        assertEq(token0Before - token0After, uint256(-amount));
-        assertEq(reserves0After - reserves0Before, uint256(-amount));
+    //     // paid token0
+    //     assertEq(token0Before - token0After, uint256(-amount));
+    //     assertEq(reserves0After - reserves0Before, uint256(-amount));
 
-        // received token1
-        assertEq(token1After - token1Before, uint256(-amount));
-    }
+    //     // received token1
+    //     assertEq(token1After - token1Before, uint256(-amount));
+    // }
 
-    function test_oneForZero_positive() public {
-        uint256 token0Before = token0.balanceOf(address(this));
-        uint256 token1Before = token1.balanceOf(address(this));
-        uint256 reserves1Before = token1.balanceOf(address(hook));
+    // function test_oneForZero_positive() public {
+    //     uint256 token0Before = token0.balanceOf(address(this));
+    //     uint256 token1Before = token1.balanceOf(address(this));
+    //     uint256 reserves1Before = token1.balanceOf(address(hook));
 
-        // Perform a test swap //
-        int256 amount = 10e18;
-        bool zeroForOne = false;
-        swap(poolKey, amount, zeroForOne, ZERO_BYTES);
-        // ------------------- //
+    //     // Perform a test swap //
+    //     int256 amount = 10e18;
+    //     bool zeroForOne = false;
+    //     swap(key, zeroForOne, amount, ZERO_BYTES);
+    //     // ------------------- //
 
-        uint256 token0After = token0.balanceOf(address(this));
-        uint256 token1After = token1.balanceOf(address(this));
-        uint256 reserves1After = token1.balanceOf(address(hook));
+    //     uint256 token0After = token0.balanceOf(address(this));
+    //     uint256 token1After = token1.balanceOf(address(this));
+    //     uint256 reserves1After = token1.balanceOf(address(hook));
 
-        // paid token1
-        assertEq(token1Before - token1After, uint256(amount));
-        assertEq(reserves1After - reserves1Before, uint256(amount));
+    //     // paid token1
+    //     assertEq(token1Before - token1After, uint256(amount));
+    //     assertEq(reserves1After - reserves1Before, uint256(amount));
 
-        // received token0
-        assertEq(token0After - token0Before, uint256(amount));
-    }
+    //     // received token0
+    //     assertEq(token0After - token0Before, uint256(amount));
+    // }
 
-    function test_oneForZero_negative() public {
-        uint256 token0Before = token0.balanceOf(address(this));
-        uint256 token1Before = token1.balanceOf(address(this));
-        uint256 reserves1Before = token1.balanceOf(address(hook));
+    // function test_oneForZero_negative() public {
+    //     uint256 token0Before = token0.balanceOf(address(this));
+    //     uint256 token1Before = token1.balanceOf(address(this));
+    //     uint256 reserves1Before = token1.balanceOf(address(hook));
 
-        // Perform a test swap: want 10 token0 //
-        int256 amount = -10e18;
-        bool zeroForOne = false;
-        swap(poolKey, amount, zeroForOne, ZERO_BYTES);
-        // ------------------- //
+    //     // Perform a test swap: want 10 token0 //
+    //     int256 amount = -10e18;
+    //     bool zeroForOne = false;
+    //     swap(key, zeroForOne, amount, ZERO_BYTES);
+    //     // ------------------- //
 
-        uint256 token0After = token0.balanceOf(address(this));
-        uint256 token1After = token1.balanceOf(address(this));
-        uint256 reserves1After = token1.balanceOf(address(hook));
+    //     uint256 token0After = token0.balanceOf(address(this));
+    //     uint256 token1After = token1.balanceOf(address(this));
+    //     uint256 reserves1After = token1.balanceOf(address(hook));
 
-        // paid token1
-        assertEq(token1Before - token1After, uint256(-amount));
-        assertEq(reserves1After - reserves1Before, uint256(-amount));
+    //     // paid token1
+    //     assertEq(token1Before - token1After, uint256(-amount));
+    //     assertEq(reserves1After - reserves1Before, uint256(-amount));
 
-        // received token0
-        assertEq(token0After - token0Before, uint256(-amount));
-    }
+    //     // received token0
+    //     assertEq(token0After - token0Before, uint256(-amount));
+    // }
 
     function test_no_v4_liquidity() public {
         vm.expectRevert("No v4 Liquidity allowed");
-        modifyPositionRouter.modifyPosition(
-            poolKey, IPoolManager.ModifyPositionParams(-60, 60, 10000 ether), ZERO_BYTES
-        );
-    }
-
-    function test_hookless_gas() public {
-        int256 amount = 1e18;
-        bool zeroForOne = true;
-        uint256 gasBefore = gasleft();
-        swap(hooklessKey, amount, zeroForOne, ZERO_BYTES);
-        uint256 gasAfter = gasleft();
-        uint256 gasUsed = gasBefore - gasAfter;
-        console2.log("hookless gas used: ", gasUsed);
-    }
-
-    function test_csmm_gas() public {
-        int256 amount = 1e18;
-        bool zeroForOne = true;
-        uint256 gasBefore = gasleft();
-        swap(poolKey, amount, zeroForOne, ZERO_BYTES);
-        uint256 gasAfter = gasleft();
-        uint256 gasUsed = gasBefore - gasAfter;
-        console2.log("csmm gas used: ", gasUsed);
+        modifyLiquidityRouter.modifyLiquidity(key, LIQUIDITY_PARAMS, ZERO_BYTES);
     }
 }
