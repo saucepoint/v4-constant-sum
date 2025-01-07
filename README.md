@@ -11,8 +11,6 @@ With [recent changes](https://github.com/Uniswap/v4-core/pull/404) to v4, Hooks 
 
 ## Methodology
 
-1. To faciliate a custom curve, we need to skip the concentrated liquidity swap. We'll use the [NoOp](https://www.v4-by-example.org/hooks/no-op) pattern, allowing us to implement the constant-sum swap.
-
 2. The hook will hold its own token balances (as liquidity for the constant-sum curve)
 
 3. The `beforeSwap` hook will handle the constant-sum curve:
@@ -25,15 +23,15 @@ With [recent changes](https://github.com/Uniswap/v4-core/pull/404) to v4, Hooks 
 
 ---
 
-NOTE: The tests are dependent on [v4-core#430](https://github.com/Uniswap/v4-core/pull/430)
-
----
-
 Additional resources:
 
 [v4-template](https://github.com/uniswapfoundation/v4-template) provides a minimal template and environment for developing v4 hooks
 
+[Uniswap v4 docs](https://docs.uniswap.org/contracts/v4/overview)
+
 [v4-periphery](https://github.com/uniswap/v4-periphery) contains advanced hook implementations that serve as a great reference
 
 [v4-core](https://github.com/uniswap/v4-core)
+
+[v4-by-example](https://v4-by-example.org)
 
