@@ -11,8 +11,6 @@ With [recent changes](https://github.com/Uniswap/v4-core/pull/404) to v4, Hooks 
 
 ## Methodology
 
-1. To faciliate a custom curve, we need to skip the concentrated liquidity swap. We'll use the [NoOp](https://www.v4-by-example.org/hooks/no-op) pattern, allowing us to implement the constant-sum swap.
-
 2. The hook will hold its own token balances (as liquidity for the constant-sum curve)
 
 3. The `beforeSwap` hook will handle the constant-sum curve:
@@ -22,10 +20,6 @@ With [recent changes](https://github.com/Uniswap/v4-core/pull/404) to v4, Hooks 
     2. an *equivalent* number of outbound tokens is sent from the hook to the PoolManager
         * the outbound token is removed from the hook's reserves
         * this creates a credit -- the swap router claims it and sends it to the swapper
-
----
-
-NOTE: The tests are dependent on [v4-core#430](https://github.com/Uniswap/v4-core/pull/430)
 
 ---
 
