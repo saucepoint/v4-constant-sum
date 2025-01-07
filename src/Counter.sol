@@ -48,8 +48,10 @@ contract Counter is BaseHook {
         (Currency inputCurrency, Currency outputCurrency) =
             params.zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-        // tokens are always swapped 1:1, so inbound/outbound amounts are the same even if the user uses exact-output-swap
-        uint256 amount = params.amountSpecified < 0 ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
+        bool isExactInput = params.amountSpecified < 0;
+
+        // tokens are always swapped 1:1, so use amountSpecified to determine both input and output amounts
+        uint256 amount = isExactInput ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);
 
         // take the input token, as ERC6909, from the PoolManager
         // the debt will be paid by the swapper via the swap router
@@ -61,28 +63,27 @@ contract Counter is BaseHook {
         // output currency is paid from the hook's reserves
         poolManager.burn(address(this), outputCurrency.toId(), amount);
 
+        int128 tokenAmount = amount.toInt128();
         // return the delta to the PoolManager, so it can process the accounting
         // exact input:
-        //   specifiedDelta = positive, to offset the input token taken by the hook
-        //   unspecifiedDelta = positive, to signal a credit of the output token
+        //   specifiedDelta = positive, to offset the input token taken by the hook (negative delta)
+        //   unspecifiedDelta = negative, to offset the credit of the output token paid by the hook (positive delta)
         // exact output:
-        //   specifiedDelta = negative, to offset the output token paid by the hook
-        //   unspecifiedDelta = negative, to signal the input token taken by the hook
-        bool isExactInput = params.amountSpecified < 0;
-        int128 tokenAmount = amount.toInt128();
+        //   specifiedDelta = negative, to offset the output token paid by the hook (positive delta)
+        //   unspecifiedDelta = positive, to offset the input token taken by the hook (negative delta)
         BeforeSwapDelta returnDelta =
-            isExactInput ? toBeforeSwapDelta(tokenAmount, tokenAmount) : toBeforeSwapDelta(-tokenAmount, -tokenAmount);
+            isExactInput ? toBeforeSwapDelta(tokenAmount, -tokenAmount) : toBeforeSwapDelta(-tokenAmount, tokenAmount);
 
         return (BaseHook.beforeSwap.selector, returnDelta, 0);
     }
 
     /// @notice No liquidity will be managed by v4 PoolManager
-    function beforeAddLiquidity(
-        address,
-        PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata,
-        bytes calldata
-    ) external override returns (bytes4) {
+    function beforeAddLiquidity(address, PoolKey calldata, IPoolManager.ModifyLiquidityParams calldata, bytes calldata)
+        external
+        pure
+        override
+        returns (bytes4)
+    {
         revert("No v4 Liquidity allowed");
     }
 
@@ -93,9 +94,28 @@ contract Counter is BaseHook {
     /// @param key PoolKey of the pool to add liquidity to
     /// @param amountPerToken The amount of each token to be added as liquidity
     function addLiquidity(PoolKey calldata key, uint256 amountPerToken) external {
-        IERC20(Currency.unwrap(key.currency0)).transferFrom(msg.sender, address(this), amountPerToken);
-        IERC20(Currency.unwrap(key.currency1)).transferFrom(msg.sender, address(this), amountPerToken);
+        poolManager.unlock(abi.encode(msg.sender, key.currency0, key.currency1, amountPerToken));
+    }
 
-        // TODO: should mint a receipt token to msg.sender
+    function _unlockCallback(bytes calldata data) internal virtual override returns (bytes memory) {
+        (address payer, Currency currency0, Currency currency1, uint256 amountPerToken) =
+            abi.decode(data, (address, Currency, Currency, uint256));
+
+        // transfer ERC20 to PoolManager
+        poolManager.sync(currency0);
+        IERC20(Currency.unwrap(currency0)).transferFrom(payer, address(poolManager), amountPerToken);
+        poolManager.settle();
+
+        poolManager.sync(currency1);
+        IERC20(Currency.unwrap(currency1)).transferFrom(payer, address(poolManager), amountPerToken);
+        poolManager.settle();
+
+        // mint ERC6909 to the hook
+        poolManager.mint(address(this), currency0.toId(), amountPerToken);
+        poolManager.mint(address(this), currency1.toId(), amountPerToken);
+
+        // TODO: mint an LP receipt token
+
+        return "";
     }
 }
